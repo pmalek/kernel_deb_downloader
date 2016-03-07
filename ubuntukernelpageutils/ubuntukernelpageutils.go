@@ -1,13 +1,15 @@
 package ubuntukernelpageutils
 
 import (
-	"./../downloadutils"
-	"./../versionutils"
-	"golang.org/x/net/html"
+	"github.com/pmalek/kernel_deb_downloader/downloadutils"
+	"github.com/pmalek/kernel_deb_downloader/versionutils"
+
 	"net/http"
 	"regexp"
 	"sort"
 	"strconv"
+
+	"golang.org/x/net/html"
 )
 
 var Kernel_webpage = "http://kernel.ubuntu.com/~kernel-ppa/mainline/"

@@ -1,8 +1,9 @@
 package main
 
 import (
-	"./ubuntukernelpageutils"
 	"fmt"
+
+	"github.com/pmalek/kernel_deb_downloader/ubuntukernelpageutils"
 )
 
 func main() {

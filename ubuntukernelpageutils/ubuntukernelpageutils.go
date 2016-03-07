@@ -12,7 +12,7 @@ import (
 	"golang.org/x/net/html"
 )
 
-var Kernel_webpage = "http://kernel.ubuntu.com/~kernel-ppa/mainline/"
+const Kernel_webpage = "http://kernel.ubuntu.com/~kernel-ppa/mainline/"
 
 func parseKernelPage() (links map[string]string) {
 	const padding = 2

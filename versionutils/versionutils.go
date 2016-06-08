@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/pmalek/kernel_deb_downloader/stringutils"
+	"github.com/pmalek/stringutils"
 )
 
 var reg_dig_in_ver = regexp.MustCompile(`\d+\.?`)

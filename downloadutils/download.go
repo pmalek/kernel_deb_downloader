@@ -9,6 +9,9 @@ import (
 	"sync"
 )
 
+// DownloadFile downloads a file from under the URL @url
+// and puts it in the current directory under the same name
+// (pretty much the same as wget http://someurl.com/file.ext )
 func DownloadFile(url string) {
 	tokens := strings.Split(url, "/")
 	fileName := tokens[len(tokens)-1]
@@ -37,6 +40,8 @@ func DownloadFile(url string) {
 	fmt.Printf("Downloaded: %v (%vB)\n", fileName, n)
 }
 
+// DownloadFiles downloads all the files from @urls in package
+// and puts the in the current directory
 func DownloadFiles(urls []string, done chan bool) {
 	var wg sync.WaitGroup
 	wg.Add(len(urls)) // Increment the WaitGroup counter.

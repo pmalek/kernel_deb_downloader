@@ -13,12 +13,12 @@ func main() {
 
 	if *onlyPrintVersion == false {
 		doneDownloading := make(chan bool)
-		version, actual_package_url := ubuntukernelpageutils.DownloadMostRecentKernelDebs(doneDownloading)
-		fmt.Printf("Most recent (non RC) version: %v, link: %v\n", version, actual_package_url)
+		version, actualPackageURL := ubuntukernelpageutils.DownloadMostRecentKernelDebs(doneDownloading)
+		fmt.Printf("Most recent (non RC) version: %v, link: %v\n", version, actualPackageURL)
 		<-doneDownloading
 	} else {
-		version, actual_package_url := ubuntukernelpageutils.GetMostActualKernelVersion()
-		fmt.Printf("Most recent (non RC) version: %v, link: %v\n", version, actual_package_url)
+		version, actualPackageURL := ubuntukernelpageutils.GetMostActualKernelVersion()
+		fmt.Printf("Most recent (non RC) version: %v, link: %v\n", version, actualPackageURL)
 	}
 
 }

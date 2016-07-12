@@ -12,12 +12,13 @@ import (
 	"golang.org/x/net/html"
 )
 
-const Kernel_webpage = "http://kernel.ubuntu.com/~kernel-ppa/mainline/"
+// KernelWebpage - URL pointing to ubuntu's ppa repositorty with Linux kernel's .deb packages
+const KernelWebpage = "http://kernel.ubuntu.com/~kernel-ppa/mainline/"
 
 func parseKernelPage() (links map[string]string) {
 	const padding = 2
 
-	resp, _ := http.Get(Kernel_webpage)
+	resp, _ := http.Get(KernelWebpage)
 	defer resp.Body.Close()
 
 	z := html.NewTokenizer(resp.Body)
@@ -37,7 +38,7 @@ func parseKernelPage() (links map[string]string) {
 				if a.Key == "href" && versionutils.IsAnRCVersion(a.Val) == false {
 					unifiedVersion := versionutils.UnifiedVersion(a.Val, padding)
 					if i, _ := strconv.Atoi(unifiedVersion[:padding]); i == 4 {
-						links[unifiedVersion] = Kernel_webpage + a.Val
+						links[unifiedVersion] = KernelWebpage + a.Val
 					}
 
 					break
@@ -50,8 +51,8 @@ func parseKernelPage() (links map[string]string) {
 }
 
 func parsePackagePage(url string) (links []string) {
-	var reg_deb_all = regexp.MustCompile(`.*_all\.deb`)
-	var reg_deb_generic = regexp.MustCompile(`.*generic.*_amd64\.deb`)
+	var regDebAll = regexp.MustCompile(`.*_all\.deb`)
+	var regDebGeneric = regexp.MustCompile(`.*generic.*_amd64\.deb`)
 
 	resp, _ := http.Get(url)
 	defer resp.Body.Close()
@@ -68,7 +69,7 @@ func parsePackagePage(url string) (links []string) {
 			t := z.Token()
 
 			for _, a := range t.Attr {
-				if a.Key == "href" && (reg_deb_generic.MatchString(a.Val) || reg_deb_all.MatchString(a.Val)) {
+				if a.Key == "href" && (regDebGeneric.MatchString(a.Val) || regDebAll.MatchString(a.Val)) {
 					links = append(links, url+a.Val)
 
 					break
@@ -91,15 +92,20 @@ func getMostActualKernelVersion(versionsAndLinksMap map[string]string) (version,
 	return
 }
 
+// GetMostActualKernelVersion returns a pair of strings representing
+// version - a canonical kernel version e.g. 040602
+// link - a URL where kernel .debs at version @version are stored
 func GetMostActualKernelVersion() (version, link string) {
 	links := parseKernelPage()
 	version, link = getMostActualKernelVersion(links)
 	return
 }
 
-func DownloadMostRecentKernelDebs(done chan bool) (version, actual_package_url string) {
-	version, actual_package_url = GetMostActualKernelVersion()
-	linksToDownload := parsePackagePage(actual_package_url)
+// DownloadMostRecentKernelDebs downloads Linux kernel .debs in version @version
+// from URL @actualPackageURL to the current directory
+func DownloadMostRecentKernelDebs(done chan bool) (version, actualPackageURL string) {
+	version, actualPackageURL = GetMostActualKernelVersion()
+	linksToDownload := parsePackagePage(actualPackageURL)
 	go downloadutils.DownloadFiles(linksToDownload, done)
-	return version, actual_package_url
+	return version, actualPackageURL
 }

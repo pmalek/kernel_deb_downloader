@@ -15,6 +15,19 @@ import (
 // KernelWebpage - URL pointing to ubuntu's ppa repositorty with Linux kernel's .deb packages
 const KernelWebpage = "http://kernel.ubuntu.com/~kernel-ppa/mainline/"
 
+func removeDuplicates(elements []string) []string {
+	encountered := map[string]bool{} // Use map to record duplicates as we find them.
+	result := []string{}
+
+	for v := range elements {
+		if encountered[elements[v]] == false {
+			encountered[elements[v]] = true      // Record this element as an encountered element.
+			result = append(result, elements[v]) // Append to result slice.
+		}
+	}
+	return result
+}
+
 func parseKernelPage() (links map[string]string) {
 	const padding = 2
 
@@ -46,8 +59,6 @@ func parseKernelPage() (links map[string]string) {
 			}
 		}
 	}
-
-	return links
 }
 
 func parsePackagePage(url string) (links []string) {
@@ -64,6 +75,7 @@ func parsePackagePage(url string) (links []string) {
 
 		switch {
 		case tt == html.ErrorToken: // End of the document, we're done
+			links = removeDuplicates(links)
 			return
 		case tt == html.StartTagToken:
 			t := z.Token()
@@ -77,7 +89,6 @@ func parsePackagePage(url string) (links []string) {
 			}
 		}
 	}
-	return
 }
 
 func getMostActualKernelVersion(versionsAndLinksMap map[string]string) (version, link string) {

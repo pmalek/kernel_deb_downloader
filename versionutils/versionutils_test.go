@@ -20,34 +20,37 @@ func Test_UnifiedVersion2(t *testing.T) {
 	}
 }
 
-func Test_IsAnRcVersion1(t *testing.T) {
-	actual := IsAnRCVersion("v4.5-rc3-wily/")
-	const expected = true
-	if actual != expected {
-		t.Errorf("Expected: '%t', got '%t'", expected, actual)
-	}
+type isAnRCVersionTestData struct {
+	input    string
+	expected bool
 }
 
-func Test_IsAnRcVersion2(t *testing.T) {
-	actual := IsAnRCVersion("v4.4.3-wily/")
-	const expected = false
-	if actual != expected {
-		t.Errorf("Expected: '%t', got '%t'", expected, actual)
+func Test_IsAnRCVersion(t *testing.T) {
+	var isAnRCVersionTests = []isAnRCVersionTestData{
+		{"v3.9.7-saucy", false},
+		{"v3.9.7-saucy/", false},
+		{"v3.12-rc1-saucy", true},
+		{"v3.12-rc1-saucy/", true},
+		{"v4.1.9-unstable", false},
+		{"v4.1.9-unstable/", false},
+		{"v4.0-rc7-vivid", true},
+		{"v4.0-rc7-vivid/", true},
+		{"v4.4.3-wily", false},
+		{"v4.4.3-wily/", false},
+		{"v4.5-rc3-wily", true},
+		{"v4.5-rc3-wily/", true},
+		{"v4.7-rc5", true},
+		{"v4.7-rc5/", true},
+		{"v4.8-rc1", true},
+		{"v4.8-rc1/", true},
+		{"linux", false},
+		{"asd", false},
+		{"", false},
 	}
-}
 
-func Test_IsAnRcVersion3(t *testing.T) {
-	actual := IsAnRCVersion("v4.0-rc7-vivid/")
-	const expected = true
-	if actual != expected {
-		t.Errorf("Expected: '%t', got '%t'", expected, actual)
-	}
-}
-
-func Test_IsAnRcVersion4(t *testing.T) {
-	actual := IsAnRCVersion("v4.1.9-unstable/")
-	const expected = false
-	if actual != expected {
-		t.Errorf("Expected: '%t', got '%t'", expected, actual)
+	for _, tt := range isAnRCVersionTests {
+		if actual := IsAnRCVersion(tt.input); actual != tt.expected {
+			t.Errorf("IsAnRCVersion(%q): Expected: %t, actual %t", tt.input, tt.expected, actual)
+		}
 	}
 }

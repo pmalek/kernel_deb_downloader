@@ -8,8 +8,9 @@ import (
 )
 
 var regDigInVer = regexp.MustCompile(`\d+\.?`)
-var regRC = regexp.MustCompile(`.*rc\d+.*`)
-var regVersion = regexp.MustCompile(`v\d+\.\d+\.\d+.*`)
+var regRC = regexp.MustCompile(`.*-rc\d+-?.*`)
+var reg2digitsVersion = regexp.MustCompile(`v\d+\.\d+[^\.]*`)
+var reg3digitsVersion = regexp.MustCompile(`v\d+\.\d+\.\d+.*`)
 
 // UnifiedVersion returns a unified version string where each of
 // major, minor and patch parts of version string @s will have a @padding
@@ -32,7 +33,7 @@ func UnifiedVersion(s string, padding int) string {
 // IsAnRCVersion return a bool indicating whether @v is an RC version
 // e.g. returns true for "v4.6-rc7-wily", return false for "v4.5.0"
 func IsAnRCVersion(v string) bool {
-	if regVersion.MatchString(v) == false && regRC.MatchString(v) == true {
+	if (reg2digitsVersion.MatchString(v) || reg3digitsVersion.MatchString(v)) && regRC.MatchString(v) == true {
 		return true
 	}
 	return false

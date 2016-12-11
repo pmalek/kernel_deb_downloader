@@ -3,22 +3,38 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
 
 	"github.com/pmalek/kernel_deb_downloader/ubuntukernelpageutils"
 )
 
+var (
+	onlyPrintVersion bool
+	showChanges      bool
+)
+
+func init() {
+	flag.BoolVar(&onlyPrintVersion, "n", false, "Print newest version - do not download the .debs")
+	flag.BoolVar(&showChanges, "c", false, "Show changes included in particular kernel package")
+}
+
 func main() {
-	onlyPrintVersion := flag.Bool("n", false, "Print newest version - do not download the .debs")
 	flag.Parse()
 
-	if *onlyPrintVersion == false {
-		doneDownloading := make(chan bool)
-		version, actualPackageURL := ubuntukernelpageutils.DownloadMostRecentKernelDebs(doneDownloading)
-		fmt.Printf("Most recent (non RC) version: %v, link: %v\n", version, actualPackageURL)
-		<-doneDownloading
-	} else {
-		version, actualPackageURL := ubuntukernelpageutils.GetMostActualKernelVersion()
-		fmt.Printf("Most recent (non RC) version: %v, link: %v\n", version, actualPackageURL)
+	version, packageURL := ubuntukernelpageutils.GetMostActualKernelVersion()
+	fmt.Printf("Most recent (non RC) version: %v, link: %v\n", version, packageURL)
+
+	if showChanges {
+		if changes, err := ubuntukernelpageutils.GetChangesFromPackageURL(packageURL); err != nil {
+			fmt.Printf("Error downloading changes: %v", err.Error())
+			os.Exit(1)
+		} else {
+			fmt.Printf("Changes: \n%v", changes)
+		}
+	}
+
+	if onlyPrintVersion == false {
+		ubuntukernelpageutils.DownloadKernelDebs(packageURL)
 	}
 
 }

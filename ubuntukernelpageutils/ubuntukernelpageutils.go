@@ -1,6 +1,10 @@
 package ubuntukernelpageutils
 
 import (
+	"errors"
+	"fmt"
+	"io/ioutil"
+
 	"github.com/pmalek/kernel_deb_downloader/downloadutils"
 	"github.com/pmalek/kernel_deb_downloader/versionutils"
 
@@ -112,11 +116,33 @@ func GetMostActualKernelVersion() (version, link string) {
 	return
 }
 
-// DownloadMostRecentKernelDebs downloads Linux kernel .debs in version @version
-// from URL @actualPackageURL to the current directory
-func DownloadMostRecentKernelDebs(done chan bool) (version, actualPackageURL string) {
-	version, actualPackageURL = GetMostActualKernelVersion()
-	linksToDownload := parsePackagePage(actualPackageURL)
-	go downloadutils.DownloadFiles(linksToDownload, done)
-	return version, actualPackageURL
+// DownloadKernelDebs downloads Linux kernel .debs from @actualPackageURL
+// to the current directory
+func DownloadKernelDebs(packageURL string) []string {
+	linksToDownload := parsePackagePage(packageURL)
+	filenames := downloadutils.DownloadFiles(linksToDownload)
+	return filenames
+}
+
+// GetChangesFromPackageURL fetches CHANGES file contents from packageURL
+// and return a pair of (string) contents of this file and error if not
+// successfull
+func GetChangesFromPackageURL(packageURL string) (string, error) {
+	changesURL := packageURL + "CHANGES"
+
+	response, err := http.Get(changesURL)
+	defer response.Body.Close()
+
+	if err != nil {
+		return "", err
+	} else if response.StatusCode != 200 {
+		err_str := fmt.Sprintf("Received %v HTTP status code when downloading CHANGES from %v\n", response.StatusCode, changesURL)
+		return "", errors.New(err_str)
+	}
+
+	if responseData, err := ioutil.ReadAll(response.Body); err != nil {
+		return "", err
+	} else {
+		return string(responseData), nil
+	}
 }

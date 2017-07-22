@@ -35,7 +35,11 @@ func removeDuplicates(elements []string) []string {
 func parseKernelPage() (links map[string]string) {
 	const padding = 2
 
-	resp, _ := http.Get(KernelWebpage)
+	resp, err := http.Get(KernelWebpage)
+	if err != nil {
+		fmt.Printf("Could get Ubuntu kernel mainline webpage %s, received: %v\n", KernelWebpage, err)
+		return
+	}
 	defer resp.Body.Close()
 
 	z := html.NewTokenizer(resp.Body)
@@ -69,7 +73,11 @@ func parsePackagePage(url string) (links []string) {
 	var regDebAll = regexp.MustCompile(`.*_all\.deb`)
 	var regDebGeneric = regexp.MustCompile(`.*generic.*_amd64\.deb`)
 
-	resp, _ := http.Get(url)
+	resp, err := http.Get(url)
+	if err != nil {
+		fmt.Printf("Could get package webpage %s, received: %v\n", KernelWebpage, err)
+		return
+	}
 	defer resp.Body.Close()
 
 	z := html.NewTokenizer(resp.Body)
@@ -131,18 +139,17 @@ func GetChangesFromPackageURL(packageURL string) (string, error) {
 	changesURL := packageURL + "CHANGES"
 
 	response, err := http.Get(changesURL)
-	defer response.Body.Close()
-
 	if err != nil {
 		return "", err
 	} else if response.StatusCode != 200 {
-		err_str := fmt.Sprintf("Received %v HTTP status code when downloading CHANGES from %v\n", response.StatusCode, changesURL)
-		return "", errors.New(err_str)
+		errStr := fmt.Sprintf("Received %v HTTP status code when downloading CHANGES from %v\n", response.StatusCode, changesURL)
+		return "", errors.New(errStr)
 	}
+	defer response.Body.Close()
 
-	if responseData, err := ioutil.ReadAll(response.Body); err != nil {
+	responseData, err := ioutil.ReadAll(response.Body)
+	if err != nil {
 		return "", err
-	} else {
-		return string(responseData), nil
 	}
+	return string(responseData), nil
 }

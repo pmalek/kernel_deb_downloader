@@ -135,8 +135,8 @@ func DownloadKernelDebs(packageURL string) ([]string, error) {
 }
 
 // GetChangesFromPackageURL fetches CHANGES file contents from packageURL
-// and return a pair of (string) contents of this file and error if not
-// successfull
+// and returns a pair of (string) contents of this file and an error
+// if not successful
 func GetChangesFromPackageURL(packageURL string) (string, error) {
 	changesURL := packageURL + "CHANGES"
 

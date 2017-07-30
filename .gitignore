@@ -27,3 +27,4 @@ _testmain.go
 linux-headers-*
 linux-image-*
 kernel_deb_downloader
+coverage.txt

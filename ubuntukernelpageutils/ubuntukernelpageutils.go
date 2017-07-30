@@ -60,38 +60,30 @@ func parseKernelPage(respBody io.Reader) (links map[string]string) {
 	return links
 }
 
-func parsePackagePage(url string) (links []string) {
+func parsePackagePage(respBody io.Reader, packageURL string) (links []string) {
 	var regDebAll = regexp.MustCompile(`.*_all\.deb`)
 	var regDebGeneric = regexp.MustCompile(`.*generic.*_amd64\.deb`)
 
-	resp, err := http.Get(url)
-	if err != nil {
-		fmt.Printf("Could get package webpage %s, received: %v\n", KernelWebpage, err)
-		return
-	}
-	defer resp.Body.Close()
+	z := html.NewTokenizer(respBody)
 
-	z := html.NewTokenizer(resp.Body)
+	for tt := z.Next(); tt != html.ErrorToken; tt = z.Next() {
 
-	for {
-		tt := z.Next()
+		if tt != html.StartTagToken {
+			continue
+		}
 
-		switch {
-		case tt == html.ErrorToken: // End of the document, we're done
-			links = removeDuplicates(links)
-			return
-		case tt == html.StartTagToken:
-			t := z.Token()
+		t := z.Token()
 
-			for _, a := range t.Attr {
-				if a.Key == "href" && (regDebGeneric.MatchString(a.Val) || regDebAll.MatchString(a.Val)) {
-					links = append(links, url+a.Val)
-
-					break
-				}
+		for _, a := range t.Attr {
+			if a.Key == "href" && (regDebGeneric.MatchString(a.Val) || regDebAll.MatchString(a.Val)) {
+				links = append(links, packageURL+a.Val)
+				break
 			}
 		}
 	}
+
+	links = removeDuplicates(links)
+	return
 }
 
 func getMostActualKernelVersion(versionsAndLinksMap map[string]string) (version, link string) {
@@ -124,10 +116,17 @@ func GetMostActualKernelVersion() (version, link string) {
 
 // DownloadKernelDebs downloads Linux kernel .debs from @actualPackageURL
 // to the current directory
-func DownloadKernelDebs(packageURL string) []string {
-	linksToDownload := parsePackagePage(packageURL)
+func DownloadKernelDebs(packageURL string) ([]string, error) {
+	resp, err := http.Get(packageURL)
+	if err != nil {
+		fmt.Printf("Could get package webpage %s, received: %v\n", KernelWebpage, err)
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	linksToDownload := parsePackagePage(resp.Body, packageURL)
 	filenames := downloadutils.DownloadFiles(linksToDownload)
-	return filenames
+	return filenames, nil
 }
 
 // GetChangesFromPackageURL fetches CHANGES file contents from packageURL

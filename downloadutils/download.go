@@ -31,13 +31,13 @@ func DownloadFile(url string) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	if n, err := io.Copy(output, resp.Body); err != nil {
+	n, copyErr := io.Copy(output, resp.Body)
+	if copyErr != nil {
 		fmt.Printf("Error copying to %v, error : %v\n", fileName, err)
 		return "", err
-	} else {
-		fmt.Printf("Downloaded: %v (%vB)\n", fileName, n)
-		return fileName, nil
 	}
+	fmt.Printf("Downloaded: %v (%vB)\n", fileName, n)
+	return fileName, nil
 }
 
 // DownloadFiles downloads all the files from @urls in package

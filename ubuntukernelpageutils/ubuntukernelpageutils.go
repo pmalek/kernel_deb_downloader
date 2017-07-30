@@ -87,6 +87,10 @@ func parsePackagePage(respBody io.Reader, packageURL string) (links []string) {
 }
 
 func getMostActualKernelVersion(versionsAndLinksMap map[string]string) (version, link string) {
+	if len(versionsAndLinksMap) == 0 {
+		return
+	}
+
 	var keys []string
 	for k := range versionsAndLinksMap {
 		keys = append(keys, k)
@@ -95,6 +99,7 @@ func getMostActualKernelVersion(versionsAndLinksMap map[string]string) (version,
 
 	version = keys[len(keys)-1]
 	link = versionsAndLinksMap[keys[len(keys)-1]]
+
 	return
 }
 

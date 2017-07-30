@@ -258,3 +258,53 @@ func Test_parsePackagePage(t *testing.T) {
 		}
 	}
 }
+
+type getMostActualKernelVersionTestData struct {
+	links           map[string]string
+	expectedVersion string
+	expectedLink    string
+}
+
+func Test_getMostActualKernelVersion(t *testing.T) {
+	var getMostActualKernelVersionTests = []getMostActualKernelVersionTestData{
+		{
+			links: map[string]string{
+				"040116": "http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.1.16-wily/",
+				"040919": "http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.9.19/",
+				"041015": "http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.10.15/",
+				"040113": "http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.1.13-wily/",
+				"040815": "http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.8.15/",
+			},
+			expectedVersion: "041015",
+			expectedLink:    "http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.10.15/",
+		},
+		{
+			links: map[string]string{
+				"040113": "http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.1.13-wily/",
+				"040815": "http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.8.15/",
+			},
+			expectedVersion: "040815",
+			expectedLink:    "http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.8.15/",
+		},
+		{
+			links: map[string]string{
+				"040815": "http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.8.15/",
+			},
+			expectedVersion: "040815",
+			expectedLink:    "http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.8.15/",
+		},
+		{
+			links:           map[string]string{},
+			expectedVersion: "",
+			expectedLink:    "",
+		},
+	}
+
+	for _, tt := range getMostActualKernelVersionTests {
+		actualVersion, actualLink := getMostActualKernelVersion(tt.links)
+		if actualVersion != tt.expectedVersion || actualLink != tt.expectedLink {
+			t.Errorf(" getMostActualKernelVersion(%q)\nExpected: %q, %q,\nactual %q, %q",
+				tt.links, tt.expectedVersion, tt.expectedLink, actualVersion, actualLink)
+		}
+	}
+}

@@ -1,4 +1,5 @@
-# kernel_deb_downloader [![Build Status](https://travis-ci.org/pmalek/kernel_deb_downloader.svg?branch=master)](https://travis-ci.org/pmalek/kernel_deb_downloader) [![Go Report Card](https://goreportcard.com/badge/github.com/pmalek/kernel_deb_downloader)](https://goreportcard.com/report/github.com/pmalek/kernel_deb_downloader)
+# kernel_deb_downloader [![Build Status](https://travis-ci.org/pmalek/kernel_deb_downloader.svg?branch=master)](https://travis-ci.org/pmalek/kernel_deb_downloader) [![Go Report Card](https://goreportcard.com/badge/github.com/pmalek/kernel_deb_downloader)](https://goreportcard.com/report/github.com/pmalek/kernel_deb_downloader) [![codecov.io report badge](https://codecov.io/gh/pmalek/kernel_deb_downloader/branch/master/graph/badge.svg)](https://codecov.io/gh/pmalek/kernel_deb_downloader)
+
 
 Simple Go project which downloads newest .deb packages from ubuntu mainline ppa
 

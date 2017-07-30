@@ -3,6 +3,7 @@ package ubuntukernelpageutils
 import (
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 
 	"github.com/pmalek/kernel_deb_downloader/downloadutils"
@@ -32,41 +33,31 @@ func removeDuplicates(elements []string) []string {
 	return result
 }
 
-func parseKernelPage() (links map[string]string) {
+func parseKernelPage(respBody io.Reader) (links map[string]string) {
 	const padding = 2
 
-	resp, err := http.Get(KernelWebpage)
-	if err != nil {
-		fmt.Printf("Could get Ubuntu kernel mainline webpage %s, received: %v\n", KernelWebpage, err)
-		return
-	}
-	defer resp.Body.Close()
-
-	z := html.NewTokenizer(resp.Body)
+	z := html.NewTokenizer(respBody)
 
 	links = make(map[string]string, 0) // the same as []string{}
 
-	for {
-		tt := z.Next()
+	for tt := z.Next(); tt != html.ErrorToken; tt = z.Next() {
+		if tt != html.StartTagToken {
+			continue
+		}
 
-		switch {
-		case tt == html.ErrorToken: // End of the document, we're done
-			return links
-		case tt == html.StartTagToken:
-			t := z.Token()
+		for _, a := range z.Token().Attr {
+			if a.Key != "href" || versionutils.IsAnRCVersion(a.Val) == true {
+				continue
+			}
 
-			for _, a := range t.Attr {
-				if a.Key == "href" && versionutils.IsAnRCVersion(a.Val) == false {
-					unifiedVersion := versionutils.UnifiedVersion(a.Val, padding)
-					if i, _ := strconv.Atoi(unifiedVersion[:padding]); i == 4 {
-						links[unifiedVersion] = KernelWebpage + a.Val
-					}
-
-					break
-				}
+			unifiedVersion := versionutils.UnifiedVersion(a.Val, padding)
+			if i, _ := strconv.Atoi(unifiedVersion[:padding]); i == 4 {
+				links[unifiedVersion] = KernelWebpage + a.Val
 			}
 		}
 	}
+
+	return links
 }
 
 func parsePackagePage(url string) (links []string) {
@@ -119,7 +110,14 @@ func getMostActualKernelVersion(versionsAndLinksMap map[string]string) (version,
 // version - a canonical kernel version e.g. 040602
 // link - a URL where kernel .debs at version @version are stored
 func GetMostActualKernelVersion() (version, link string) {
-	links := parseKernelPage()
+	resp, err := http.Get(KernelWebpage)
+	if err != nil {
+		fmt.Printf("Could get Ubuntu kernel mainline webpage %s, received: %v\n", KernelWebpage, err)
+		return
+	}
+	defer resp.Body.Close()
+
+	links := parseKernelPage(resp.Body)
 	version, link = getMostActualKernelVersion(links)
 	return
 }

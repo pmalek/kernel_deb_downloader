@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 
 	"github.com/pmalek/kernel_deb_downloader/ubuntukernelpageutils"
@@ -21,7 +22,7 @@ func init() {
 func main() {
 	flag.Parse()
 
-	version, packageURL := ubuntukernelpageutils.GetMostActualKernelVersion()
+	version, packageURL := ubuntukernelpageutils.GetMostActualKernelVersion(http.DefaultClient)
 	fmt.Printf("Most recent (non RC) version: %v, link: %v\n", version, packageURL)
 
 	if showChanges {

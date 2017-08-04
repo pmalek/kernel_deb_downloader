@@ -103,11 +103,16 @@ func getMostActualKernelVersion(versionsAndLinksMap map[string]string) (version,
 	return
 }
 
+type httpGetter interface {
+	Get(string) (*http.Response, error)
+}
+
 // GetMostActualKernelVersion returns a pair of strings representing
 // version - a canonical kernel version e.g. 040602
 // link - a URL where kernel .debs at version @version are stored
-func GetMostActualKernelVersion() (version, link string) {
-	resp, err := http.Get(KernelWebpage)
+func GetMostActualKernelVersion(client httpGetter) (version, link string) {
+	resp, err := client.Get(KernelWebpage)
+
 	if err != nil {
 		fmt.Printf("Could get Ubuntu kernel mainline webpage %s, received: %v\n", KernelWebpage, err)
 		return

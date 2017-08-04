@@ -1,9 +1,13 @@
 package ubuntukernelpageutils
 
-import "testing"
-
-import "strings"
-import "reflect"
+import (
+	"bytes"
+	"io"
+	"net/http"
+	"reflect"
+	"strings"
+	"testing"
+)
 
 func equalStringSlices(a, b []string) bool {
 	if a == nil && b == nil {
@@ -55,7 +59,7 @@ type parsePagesTestData struct {
 }
 
 func Test_parseKernelPage(t *testing.T) {
-	var parsePagesTests = []parsePagesTestData{
+	var tests = []parsePagesTestData{
 		{`<tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.12.1/">v4.12.1/</a></td><td align="right">2017-07-12 17:20  </td><td align="right">  - </td><td>&nbsp;</td></tr>`,
 			map[string]string{
 				"041201": "http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.12.1/",
@@ -89,7 +93,7 @@ func Test_parseKernelPage(t *testing.T) {
 		},
 	}
 
-	for _, tt := range parsePagesTests {
+	for _, tt := range tests {
 		actual := parseKernelPage(strings.NewReader(tt.str))
 		if !reflect.DeepEqual(actual, tt.expected) {
 			t.Errorf("parseKernelPage(%q)\nExpected: %q,\nactual %q", tt.str, tt.expected, actual)
@@ -98,7 +102,7 @@ func Test_parseKernelPage(t *testing.T) {
 }
 
 func Test_parseKernelPage_RCsAreNotReturned(t *testing.T) {
-	var parsePagesTests = []parsePagesTestData{
+	var tests = []parsePagesTestData{
 		{`<tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.12.4/">v4.12.4/</a></td><td align="right">2017-07-28 01:00  </td><td align="right">  - </td><td>&nbsp;</td></tr><tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.11.10/">v4.11.10/</a></td><td align="right">2017-07-12 16:20  </td><td align="right">  - </td><td>&nbsp;</td></tr><tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.12-rc3/">v4.12-rc3/</a></td><td align="right">2017-05-29 02:50  </td><td align="right">  - </td><td>&nbsp;</td></tr>`,
 			map[string]string{
 				"041110": "http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.11.10/",
@@ -115,7 +119,7 @@ func Test_parseKernelPage_RCsAreNotReturned(t *testing.T) {
 		},
 	}
 
-	for _, tt := range parsePagesTests {
+	for _, tt := range tests {
 		actual := parseKernelPage(strings.NewReader(tt.str))
 		if !reflect.DeepEqual(actual, tt.expected) {
 			t.Errorf("parseKernelPage(%q)\nExpected: %q,\nactual %q", tt.str, tt.expected, actual)
@@ -130,7 +134,7 @@ type parsePackangePageTestData struct {
 }
 
 func Test_parsePackagePage(t *testing.T) {
-	var parsePagesTests = []parsePackangePageTestData{
+	var tests = []parsePackangePageTestData{
 		{str: `<tr><td valign="top"><img src="/icons/back.gif" alt="[PARENTDIR]"></td><td><a href="/~kernel-ppa/mainline/">Parent Directory</a></td><td>&nbsp;</td><td align="right">  - </td><td>&nbsp;</td></tr>
 		<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="0001-base-packaging.patch">0001-base-packaging.patch</a></td><td align="right">2017-07-27 23:32  </td><td align="right"> 14M</td><td>&nbsp;</td></tr>
 		<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="0002-debian-changelog.patch">0002-debian-changelog.patch</a></td><td align="right">2017-07-27 23:32  </td><td align="right"> 40K</td><td>&nbsp;</td></tr>
@@ -250,8 +254,7 @@ func Test_parsePackagePage(t *testing.T) {
 			expected:   []string{},
 		},
 	}
-
-	for _, tt := range parsePagesTests {
+	for _, tt := range tests {
 		actual := parsePackagePage(strings.NewReader(tt.str), tt.packageURL)
 		if !reflect.DeepEqual(actual, tt.expected) {
 			t.Errorf("parsePackagePage(%q)\nExpected: %q,\nactual %q", tt.str, tt.expected, actual)
@@ -266,7 +269,7 @@ type getMostActualKernelVersionTestData struct {
 }
 
 func Test_getMostActualKernelVersion(t *testing.T) {
-	var getMostActualKernelVersionTests = []getMostActualKernelVersionTestData{
+	var tests = []getMostActualKernelVersionTestData{
 		{
 			links: map[string]string{
 				"040116": "http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.1.16-wily/",
@@ -300,11 +303,131 @@ func Test_getMostActualKernelVersion(t *testing.T) {
 		},
 	}
 
-	for _, tt := range getMostActualKernelVersionTests {
+	for _, tt := range tests {
 		actualVersion, actualLink := getMostActualKernelVersion(tt.links)
 		if actualVersion != tt.expectedVersion || actualLink != tt.expectedLink {
 			t.Errorf(" getMostActualKernelVersion(%q)\nExpected: %q, %q,\nactual %q, %q",
 				tt.links, tt.expectedVersion, tt.expectedLink, actualVersion, actualLink)
+		}
+	}
+}
+
+type nopCloser struct {
+	io.Reader
+}
+
+func (nopCloser) Close() error { return nil }
+
+type mockedClient struct {
+	response string
+}
+
+func (c *mockedClient) setResponse(response string) {
+	c.response = response
+}
+
+func (c mockedClient) Get(url string) (*http.Response, error) {
+	resp := &http.Response{
+		Body: nopCloser{bytes.NewBufferString(c.response)},
+	}
+
+	return resp, nil
+}
+
+type GetMostActualKernelVersionTestData struct {
+	kernelPageContents string
+	expectedVersion    string
+	expectedLink       string
+}
+
+func Test_GetMostActualKernelVersion_MockClient(t *testing.T) {
+	var tests = []GetMostActualKernelVersionTestData{
+		{
+			kernelPageContents: `<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+ <head>
+  <title>Index of /~kernel-ppa/mainline</title>
+ </head>
+ <body>
+<h1>Index of /~kernel-ppa/mainline</h1>
+  <table>
+   <tr><th valign="top"><img src="/icons/blank.gif" alt="[ICO]"></th><th><a href="?C=N;O=D">Name</a></th><th><a href="?C=M;O=A">Last modified</a></th><th><a href="?C=S;O=A">Size</a></th><th><a href="?C=D;O=A">Description</a></th></tr>
+   <tr><th colspan="5"><hr></th></tr>
+<tr><td valign="top"><img src="/icons/back.gif" alt="[PARENTDIR]"></td><td><a href="/~kernel-ppa/">Parent Directory</a></td><td>&nbsp;</td><td align="right">  - </td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="daily/">daily/</a></td><td align="right">2017-08-04 08:00  </td><td align="right">  - </td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="drm-intel-next/">drm-intel-next/</a></td><td align="right">2017-08-01 08:00  </td><td align="right">  - </td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.12-rc4/">v4.12-rc4/</a></td><td align="right">2017-06-05 02:00  </td><td align="right">  - </td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.12-rc5/">v4.12-rc5/</a></td><td align="right">2017-06-12 01:50  </td><td align="right">  - </td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.12-rc6/">v4.12-rc6/</a></td><td align="right">2017-06-21 07:20  </td><td align="right">  - </td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.12-rc7/">v4.12-rc7/</a></td><td align="right">2017-06-26 04:00  </td><td align="right">  - </td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.12.1/">v4.12.1/</a></td><td align="right">2017-07-12 17:20  </td><td align="right">  - </td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.12.2/">v4.12.2/</a></td><td align="right">2017-07-15 13:20  </td><td align="right">  - </td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.12.3/">v4.12.3/</a></td><td align="right">2017-07-21 09:00  </td><td align="right">  - </td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.12.4/">v4.12.4/</a></td><td align="right">2017-07-28 01:00  </td><td align="right">  - </td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.12/">v4.12/</a></td><td align="right">2017-07-03 01:20  </td><td align="right">  - </td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.13-rc1/">v4.13-rc1/</a></td><td align="right">2017-07-16 00:50  </td><td align="right">  - </td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.13-rc2/">v4.13-rc2/</a></td><td align="right">2017-07-24 03:40  </td><td align="right">  - </td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.13-rc3/">v4.13-rc3/</a></td><td align="right">2017-07-30 21:20  </td><td align="right">  - </td><td>&nbsp;</td></tr>
+   <tr><th colspan="5"><hr></th></tr>
+</table>
+<address>Apache/2.4.18 (Ubuntu) Server at kernel.ubuntu.com Port 80</address>
+</body></html>`,
+			expectedVersion: "041204",
+			expectedLink:    "http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.12.4/",
+		},
+		{
+			kernelPageContents: `<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+ <head>
+  <title>Index of /~kernel-ppa/mainline</title>
+ </head>
+ <body>
+<h1>Index of /~kernel-ppa/mainline</h1>
+  <table>
+   <tr><th valign="top"><img src="/icons/blank.gif" alt="[ICO]"></th><th><a href="?C=N;O=D">Name</a></th><th><a href="?C=M;O=A">Last modified</a></th><th><a href="?C=S;O=A">Size</a></th><th><a href="?C=D;O=A">Description</a></th></tr>
+   <tr><th colspan="5"><hr></th></tr>
+<tr><td valign="top"><img src="/icons/back.gif" alt="[PARENTDIR]"></td><td><a href="/~kernel-ppa/">Parent Directory</a></td><td>&nbsp;</td><td align="right">  - </td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="daily/">daily/</a></td><td align="right">2017-08-04 08:00  </td><td align="right">  - </td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="drm-intel-next/">drm-intel-next/</a></td><td align="right">2017-08-01 08:00  </td><td align="right">  - </td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.12.2/">v4.12.2/</a></td><td align="right">2017-07-15 13:20  </td><td align="right">  - </td><td>&nbsp;</td></tr>
+   <tr><th colspan="5"><hr></th></tr>
+</table>
+<address>Apache/2.4.18 (Ubuntu) Server at kernel.ubuntu.com Port 80</address>
+</body></html>`,
+			expectedVersion: "041202",
+			expectedLink:    "http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.12.2/",
+		},
+		{
+			kernelPageContents: `<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+ <head>
+  <title>Index of /~kernel-ppa/mainline</title>
+ </head>
+ <body>
+<h1>Index of /~kernel-ppa/mainline</h1>
+  <table>
+   <tr><th valign="top"><img src="/icons/blank.gif" alt="[ICO]"></th><th><a href="?C=N;O=D">Name</a></th><th><a href="?C=M;O=A">Last modified</a></th><th><a href="?C=S;O=A">Size</a></th><th><a href="?C=D;O=A">Description</a></th></tr>
+   <tr><th colspan="5"><hr></th></tr>
+<tr><td valign="top"><img src="/icons/back.gif" alt="[PARENTDIR]"></td><td><a href="/~kernel-ppa/">Parent Directory</a></td><td>&nbsp;</td><td align="right">  - </td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.12.4/">v4.12.4/</a></td><td align="right">2017-07-28 01:00  </td><td align="right">  - </td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.12.2/">v4.12.2/</a></td><td align="right">2017-07-15 13:20  </td><td align="right">  - </td><td>&nbsp;</td></tr>
+   <tr><th colspan="5"><hr></th></tr>
+</table>
+<address>Apache/2.4.18 (Ubuntu) Server at kernel.ubuntu.com Port 80</address>
+</body></html>`,
+			expectedVersion: "041204",
+			expectedLink:    "http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.12.4/",
+		},
+	}
+
+	client := mockedClient{}
+
+	for _, tt := range tests {
+		client.setResponse(tt.kernelPageContents)
+		actualVersion, actualLink := GetMostActualKernelVersion(client)
+		if actualVersion != tt.expectedVersion || actualLink != tt.expectedLink {
+			t.Errorf("GetMostActualKernelVersion(%q)\nExpected: %q, %q,\nactual %q, %q",
+				tt.kernelPageContents, tt.expectedVersion, tt.expectedLink, actualVersion, actualLink)
 		}
 	}
 }

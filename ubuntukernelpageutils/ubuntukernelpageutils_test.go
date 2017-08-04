@@ -426,7 +426,7 @@ func Test_GetMostActualKernelVersion_MockClient(t *testing.T) {
 		client.setResponse(tt.kernelPageContents)
 		actualVersion, actualLink := GetMostActualKernelVersion(client)
 		if actualVersion != tt.expectedVersion || actualLink != tt.expectedLink {
-			t.Errorf("GetMostActualKernelVersion(%q)\nExpected: %q, %q,\nactual %q, %q",
+			t.Errorf("GetMostActualKernelVersion()\nPage Contents:%q,\nExpected: %q, %q,\nactual %q, %q",
 				tt.kernelPageContents, tt.expectedVersion, tt.expectedLink, actualVersion, actualLink)
 		}
 	}

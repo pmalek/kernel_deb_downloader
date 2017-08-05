@@ -2,6 +2,7 @@ package ubuntukernelpageutils
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"net/http"
 	"reflect"
@@ -320,10 +321,15 @@ func (nopCloser) Close() error { return nil }
 
 type mockedClient struct {
 	response string
+	err      error
 }
 
 func (c *mockedClient) setResponse(response string) {
 	c.response = response
+}
+
+func (c *mockedClient) setError(err error) {
+	c.err = err
 }
 
 func (c mockedClient) Get(url string) (*http.Response, error) {
@@ -331,7 +337,7 @@ func (c mockedClient) Get(url string) (*http.Response, error) {
 		Body: nopCloser{bytes.NewBufferString(c.response)},
 	}
 
-	return resp, nil
+	return resp, c.err
 }
 
 type GetMostActualKernelVersionTestData struct {
@@ -429,5 +435,16 @@ func Test_GetMostActualKernelVersion_MockClient(t *testing.T) {
 			t.Errorf("GetMostActualKernelVersion()\nPage Contents:%q,\nExpected: %q, %q,\nactual %q, %q",
 				tt.kernelPageContents, tt.expectedVersion, tt.expectedLink, actualVersion, actualLink)
 		}
+	}
+}
+
+func Test_GetMostActualKernelVersion_MockClient_Error(t *testing.T) {
+	client := mockedClient{}
+
+	client.err = errors.New("Some error")
+	actualVersion, actualLink := GetMostActualKernelVersion(client)
+	if actualVersion != "" || actualLink != "" {
+		t.Errorf("GetMostActualKernelVersion()\nExpected empty version and link on error but received:\nactual %q, %q",
+			actualVersion, actualLink)
 	}
 }

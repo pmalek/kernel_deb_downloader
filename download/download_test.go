@@ -2,6 +2,7 @@ package download
 
 import (
 	"bytes"
+	"fmt"
 	"math/rand"
 	"testing"
 	"testing/quick"
@@ -43,5 +44,17 @@ func Test_ToWriter_quick(t *testing.T) {
 
 	if err := quick.Check(f, cfg); err != nil {
 		t.Error(err)
+	}
+}
+
+func Test_ToWriter_Error(t *testing.T) {
+	client := http.MockedClient{}
+	client.SetError(fmt.Errorf("Some error"))
+
+	buff := &bytes.Buffer{}
+	_, err := ToWriter(client, buff, "")
+
+	if err == nil {
+		t.Errorf("Error expected yet received nil error")
 	}
 }

@@ -1,13 +1,13 @@
 package ubuntukernelpageutils
 
 import (
-	"bytes"
 	"errors"
-	"io"
-	"net/http"
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/pmalek/kernel_deb_downloader/http"
 )
 
 func equalStringSlices(a, b []string) bool {
@@ -313,33 +313,6 @@ func Test_getMostActualKernelVersion(t *testing.T) {
 	}
 }
 
-type nopCloser struct {
-	io.Reader
-}
-
-func (nopCloser) Close() error { return nil }
-
-type mockedClient struct {
-	response string
-	err      error
-}
-
-func (c *mockedClient) setResponse(response string) {
-	c.response = response
-}
-
-func (c *mockedClient) setError(err error) {
-	c.err = err
-}
-
-func (c mockedClient) Get(url string) (*http.Response, error) {
-	resp := &http.Response{
-		Body: nopCloser{bytes.NewBufferString(c.response)},
-	}
-
-	return resp, c.err
-}
-
 type GetMostActualKernelVersionTestData struct {
 	kernelPageContents string
 	expectedVersion    string
@@ -426,10 +399,10 @@ func Test_GetMostActualKernelVersion_MockClient(t *testing.T) {
 		},
 	}
 
-	client := mockedClient{}
+	client := http.MockedClient{}
 
 	for _, tt := range tests {
-		client.setResponse(tt.kernelPageContents)
+		client.SetResponse(tt.kernelPageContents)
 		actualVersion, actualLink, err := GetMostActualKernelVersion(client)
 		if actualVersion != tt.expectedVersion || actualLink != tt.expectedLink || err != nil {
 			t.Errorf("GetMostActualKernelVersion()\nPage Contents:%q,\nExpected: %q, %q,\nactual %q, %q\nerror: %q",
@@ -439,12 +412,51 @@ func Test_GetMostActualKernelVersion_MockClient(t *testing.T) {
 }
 
 func Test_GetMostActualKernelVersion_MockClient_Error(t *testing.T) {
-	client := mockedClient{}
+	client := http.MockedClient{}
+	client.SetError(errors.New("Some error"))
 
-	client.err = errors.New("Some error")
 	actualVersion, actualLink, err := GetMostActualKernelVersion(client)
 	if actualVersion != "" || actualLink != "" || err == nil {
 		t.Errorf("GetMostActualKernelVersion()\nExpected empty version and link on error but received:\nactual %q, %q\nError: %q",
 			actualVersion, actualLink, err)
+	}
+}
+
+func Test_GetChangesFromPackageURL_OnSuccess(t *testing.T) {
+	expectedChanges := "Some Changes"
+
+	client := http.MockedClient{}
+	client.SetResponse(expectedChanges)
+	client.SetStatusCode(200)
+
+	actualChangesContents, err := GetChangesFromPackageURL(client, "")
+
+	if err != nil {
+		t.Errorf("GetChangesFromPackageURL() wasn't supposed to return an error but it did return a %q", err)
+	}
+	if actualChangesContents != expectedChanges {
+		t.Errorf("GetChangesFromPackageURL() returned %q but %q", actualChangesContents, expectedChanges)
+	}
+}
+
+func Test_GetChangesFromPackageURL_OnError(t *testing.T) {
+	client := http.MockedClient{}
+	client.SetError(fmt.Errorf("An Error"))
+
+	_, err := GetChangesFromPackageURL(client, "")
+
+	if err == nil {
+		t.Errorf("GetChangesFromPackageURL() was supposed to return an error but it returned an nil error")
+	}
+}
+
+func Test_GetChangesFromPackageURL_Non200StatusCode(t *testing.T) {
+	client := http.MockedClient{}
+	client.SetStatusCode(404)
+
+	_, err := GetChangesFromPackageURL(client, "")
+
+	if err == nil {
+		t.Errorf("GetChangesFromPackageURL() was supposed to return an error but it returned an nil error")
 	}
 }

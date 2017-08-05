@@ -6,10 +6,10 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/pmalek/kernel_deb_downloader/downloadutils"
+	"github.com/pmalek/kernel_deb_downloader/download"
+	"github.com/pmalek/kernel_deb_downloader/http"
 	"github.com/pmalek/kernel_deb_downloader/versionutils"
 
-	"net/http"
 	"regexp"
 	"sort"
 	"strconv"
@@ -103,14 +103,10 @@ func getMostActualKernelVersion(versionsAndLinksMap map[string]string) (version,
 	return
 }
 
-type httpGetter interface {
-	Get(string) (*http.Response, error)
-}
-
 // GetMostActualKernelVersion returns a pair of strings representing
 // version - a canonical kernel version e.g. 040602
 // link - a URL where kernel .debs at version @version are stored
-func GetMostActualKernelVersion(client httpGetter) (version, link string, err error) {
+func GetMostActualKernelVersion(client http.Getter) (version, link string, err error) {
 	resp, err := client.Get(KernelWebpage)
 
 	if err != nil {
@@ -126,8 +122,8 @@ func GetMostActualKernelVersion(client httpGetter) (version, link string, err er
 
 // DownloadKernelDebs downloads Linux kernel .debs from @actualPackageURL
 // to the current directory
-func DownloadKernelDebs(packageURL string) ([]string, error) {
-	resp, err := http.Get(packageURL)
+func DownloadKernelDebs(client http.Getter, packageURL string) ([]string, error) {
+	resp, err := client.Get(packageURL)
 	if err != nil {
 		fmt.Printf("Could get package webpage %s, received: %v\n", KernelWebpage, err)
 		return nil, err
@@ -135,17 +131,16 @@ func DownloadKernelDebs(packageURL string) ([]string, error) {
 	defer resp.Body.Close()
 
 	linksToDownload := parsePackagePage(resp.Body, packageURL)
-	filenames := downloadutils.DownloadFiles(linksToDownload)
+	filenames := download.ToFiles(client, linksToDownload)
 	return filenames, nil
 }
 
 // GetChangesFromPackageURL fetches CHANGES file contents from packageURL
-// and returns a pair of (string) contents of this file and an error
-// if not successful
-func GetChangesFromPackageURL(packageURL string) (string, error) {
+// and returns contents of this file and an error if not successful
+func GetChangesFromPackageURL(client http.Getter, packageURL string) (string, error) {
 	changesURL := packageURL + "CHANGES"
 
-	response, err := http.Get(changesURL)
+	response, err := client.Get(changesURL)
 	if err != nil {
 		return "", err
 	} else if response.StatusCode != 200 {

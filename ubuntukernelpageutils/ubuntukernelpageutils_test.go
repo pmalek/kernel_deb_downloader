@@ -430,10 +430,10 @@ func Test_GetMostActualKernelVersion_MockClient(t *testing.T) {
 
 	for _, tt := range tests {
 		client.setResponse(tt.kernelPageContents)
-		actualVersion, actualLink := GetMostActualKernelVersion(client)
-		if actualVersion != tt.expectedVersion || actualLink != tt.expectedLink {
-			t.Errorf("GetMostActualKernelVersion()\nPage Contents:%q,\nExpected: %q, %q,\nactual %q, %q",
-				tt.kernelPageContents, tt.expectedVersion, tt.expectedLink, actualVersion, actualLink)
+		actualVersion, actualLink, err := GetMostActualKernelVersion(client)
+		if actualVersion != tt.expectedVersion || actualLink != tt.expectedLink || err != nil {
+			t.Errorf("GetMostActualKernelVersion()\nPage Contents:%q,\nExpected: %q, %q,\nactual %q, %q\nerror: %q",
+				tt.kernelPageContents, tt.expectedVersion, tt.expectedLink, actualVersion, actualLink, err)
 		}
 	}
 }
@@ -442,9 +442,9 @@ func Test_GetMostActualKernelVersion_MockClient_Error(t *testing.T) {
 	client := mockedClient{}
 
 	client.err = errors.New("Some error")
-	actualVersion, actualLink := GetMostActualKernelVersion(client)
-	if actualVersion != "" || actualLink != "" {
-		t.Errorf("GetMostActualKernelVersion()\nExpected empty version and link on error but received:\nactual %q, %q",
-			actualVersion, actualLink)
+	actualVersion, actualLink, err := GetMostActualKernelVersion(client)
+	if actualVersion != "" || actualLink != "" || err == nil {
+		t.Errorf("GetMostActualKernelVersion()\nExpected empty version and link on error but received:\nactual %q, %q\nError: %q",
+			actualVersion, actualLink, err)
 	}
 }

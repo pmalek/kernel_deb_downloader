@@ -22,7 +22,12 @@ func init() {
 func main() {
 	flag.Parse()
 
-	version, packageURL := ubuntukernelpageutils.GetMostActualKernelVersion(http.DefaultClient)
+	version, packageURL, err := ubuntukernelpageutils.GetMostActualKernelVersion(http.DefaultClient)
+	if err != nil {
+		fmt.Printf("Error connecting to Ubuntu's kernel ppa webpage, error: %q", err)
+		os.Exit(1)
+	}
+
 	fmt.Printf("Most recent (non RC) version: %v, link: %v\n", version, packageURL)
 
 	if showChanges {

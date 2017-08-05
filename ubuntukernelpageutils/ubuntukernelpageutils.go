@@ -110,18 +110,18 @@ type httpGetter interface {
 // GetMostActualKernelVersion returns a pair of strings representing
 // version - a canonical kernel version e.g. 040602
 // link - a URL where kernel .debs at version @version are stored
-func GetMostActualKernelVersion(client httpGetter) (version, link string) {
+func GetMostActualKernelVersion(client httpGetter) (version, link string, err error) {
 	resp, err := client.Get(KernelWebpage)
 
 	if err != nil {
-		fmt.Printf("Could get Ubuntu kernel mainline webpage %s, received: %v\n", KernelWebpage, err)
-		return
+		return "", "",
+			fmt.Errorf("Could get Ubuntu kernel mainline webpage %s, received error: %v", KernelWebpage, err)
 	}
 	defer resp.Body.Close()
 
 	links := parseKernelPage(resp.Body)
 	version, link = getMostActualKernelVersion(links)
-	return
+	return version, link, nil
 }
 
 // DownloadKernelDebs downloads Linux kernel .debs from @actualPackageURL

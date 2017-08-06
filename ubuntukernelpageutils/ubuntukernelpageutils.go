@@ -3,12 +3,13 @@ package ubuntukernelpageutils
 import (
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 
-	"github.com/pmalek/kernel_deb_downloader/downloadutils"
+	"github.com/pmalek/kernel_deb_downloader/download"
+	"github.com/pmalek/kernel_deb_downloader/http"
 	"github.com/pmalek/kernel_deb_downloader/versionutils"
 
-	"net/http"
 	"regexp"
 	"sort"
 	"strconv"
@@ -32,70 +33,64 @@ func removeDuplicates(elements []string) []string {
 	return result
 }
 
-func parseKernelPage() (links map[string]string) {
+func parseKernelPage(respBody io.Reader) (links map[string]string) {
 	const padding = 2
 
-	resp, _ := http.Get(KernelWebpage)
-	defer resp.Body.Close()
-
-	z := html.NewTokenizer(resp.Body)
+	z := html.NewTokenizer(respBody)
 
 	links = make(map[string]string, 0) // the same as []string{}
 
-	for {
-		tt := z.Next()
+	for tt := z.Next(); tt != html.ErrorToken; tt = z.Next() {
+		if tt != html.StartTagToken {
+			continue
+		}
 
-		switch {
-		case tt == html.ErrorToken: // End of the document, we're done
-			return links
-		case tt == html.StartTagToken:
-			t := z.Token()
+		for _, a := range z.Token().Attr {
+			if a.Key != "href" || versionutils.IsAnRCVersion(a.Val) == true {
+				continue
+			}
 
-			for _, a := range t.Attr {
-				if a.Key == "href" && versionutils.IsAnRCVersion(a.Val) == false {
-					unifiedVersion := versionutils.UnifiedVersion(a.Val, padding)
-					if i, _ := strconv.Atoi(unifiedVersion[:padding]); i == 4 {
-						links[unifiedVersion] = KernelWebpage + a.Val
-					}
-
-					break
-				}
+			unifiedVersion := versionutils.UnifiedVersion(a.Val, padding)
+			if i, _ := strconv.Atoi(unifiedVersion[:padding]); i == 4 {
+				links[unifiedVersion] = KernelWebpage + a.Val
 			}
 		}
 	}
+
+	return links
 }
 
-func parsePackagePage(url string) (links []string) {
+func parsePackagePage(respBody io.Reader, packageURL string) (links []string) {
 	var regDebAll = regexp.MustCompile(`.*_all\.deb`)
 	var regDebGeneric = regexp.MustCompile(`.*generic.*_amd64\.deb`)
 
-	resp, _ := http.Get(url)
-	defer resp.Body.Close()
+	z := html.NewTokenizer(respBody)
 
-	z := html.NewTokenizer(resp.Body)
+	for tt := z.Next(); tt != html.ErrorToken; tt = z.Next() {
 
-	for {
-		tt := z.Next()
+		if tt != html.StartTagToken {
+			continue
+		}
 
-		switch {
-		case tt == html.ErrorToken: // End of the document, we're done
-			links = removeDuplicates(links)
-			return
-		case tt == html.StartTagToken:
-			t := z.Token()
+		t := z.Token()
 
-			for _, a := range t.Attr {
-				if a.Key == "href" && (regDebGeneric.MatchString(a.Val) || regDebAll.MatchString(a.Val)) {
-					links = append(links, url+a.Val)
-
-					break
-				}
+		for _, a := range t.Attr {
+			if a.Key == "href" && (regDebGeneric.MatchString(a.Val) || regDebAll.MatchString(a.Val)) {
+				links = append(links, packageURL+a.Val)
+				break
 			}
 		}
 	}
+
+	links = removeDuplicates(links)
+	return
 }
 
 func getMostActualKernelVersion(versionsAndLinksMap map[string]string) (version, link string) {
+	if len(versionsAndLinksMap) == 0 {
+		return
+	}
+
 	var keys []string
 	for k := range versionsAndLinksMap {
 		keys = append(keys, k)
@@ -104,45 +99,59 @@ func getMostActualKernelVersion(versionsAndLinksMap map[string]string) (version,
 
 	version = keys[len(keys)-1]
 	link = versionsAndLinksMap[keys[len(keys)-1]]
+
 	return
 }
 
 // GetMostActualKernelVersion returns a pair of strings representing
 // version - a canonical kernel version e.g. 040602
 // link - a URL where kernel .debs at version @version are stored
-func GetMostActualKernelVersion() (version, link string) {
-	links := parseKernelPage()
+func GetMostActualKernelVersion(client http.Getter) (version, link string, err error) {
+	resp, err := client.Get(KernelWebpage)
+
+	if err != nil {
+		return "", "",
+			fmt.Errorf("Could get Ubuntu kernel mainline webpage %s, received error: %v", KernelWebpage, err)
+	}
+	defer resp.Body.Close()
+
+	links := parseKernelPage(resp.Body)
 	version, link = getMostActualKernelVersion(links)
-	return
+	return version, link, nil
 }
 
 // DownloadKernelDebs downloads Linux kernel .debs from @actualPackageURL
 // to the current directory
-func DownloadKernelDebs(packageURL string) []string {
-	linksToDownload := parsePackagePage(packageURL)
-	filenames := downloadutils.DownloadFiles(linksToDownload)
-	return filenames
+func DownloadKernelDebs(client http.GetterHeader, packageURL string) ([]string, error) {
+	resp, err := client.Get(packageURL)
+	if err != nil {
+		fmt.Printf("Could get package webpage %s, received: %v\n", KernelWebpage, err)
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	linksToDownload := parsePackagePage(resp.Body, packageURL)
+	filenames := download.ToFiles(client, linksToDownload)
+	return filenames, nil
 }
 
 // GetChangesFromPackageURL fetches CHANGES file contents from packageURL
-// and return a pair of (string) contents of this file and error if not
-// successfull
-func GetChangesFromPackageURL(packageURL string) (string, error) {
+// and returns contents of this file and an error if not successful
+func GetChangesFromPackageURL(client http.Getter, packageURL string) (string, error) {
 	changesURL := packageURL + "CHANGES"
 
-	response, err := http.Get(changesURL)
-	defer response.Body.Close()
-
+	response, err := client.Get(changesURL)
 	if err != nil {
 		return "", err
 	} else if response.StatusCode != 200 {
-		err_str := fmt.Sprintf("Received %v HTTP status code when downloading CHANGES from %v\n", response.StatusCode, changesURL)
-		return "", errors.New(err_str)
+		errStr := fmt.Sprintf("Received %v HTTP status code when downloading CHANGES from %v\n", response.StatusCode, changesURL)
+		return "", errors.New(errStr)
 	}
+	defer response.Body.Close()
 
-	if responseData, err := ioutil.ReadAll(response.Body); err != nil {
+	responseData, err := ioutil.ReadAll(response.Body)
+	if err != nil {
 		return "", err
-	} else {
-		return string(responseData), nil
 	}
+	return string(responseData), nil
 }

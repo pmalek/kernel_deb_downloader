@@ -26,3 +26,5 @@ _testmain.go
 *.swp
 linux-headers-*
 linux-image-*
+kernel_deb_downloader
+coverage.txt

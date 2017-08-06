@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 
 	"github.com/pmalek/kernel_deb_downloader/ubuntukernelpageutils"
@@ -21,11 +22,16 @@ func init() {
 func main() {
 	flag.Parse()
 
-	version, packageURL := ubuntukernelpageutils.GetMostActualKernelVersion()
+	version, packageURL, err := ubuntukernelpageutils.GetMostActualKernelVersion(http.DefaultClient)
+	if err != nil {
+		fmt.Printf("Error connecting to Ubuntu's kernel ppa webpage, error: %q", err)
+		os.Exit(1)
+	}
+
 	fmt.Printf("Most recent (non RC) version: %v, link: %v\n", version, packageURL)
 
 	if showChanges {
-		if changes, err := ubuntukernelpageutils.GetChangesFromPackageURL(packageURL); err != nil {
+		if changes, err := ubuntukernelpageutils.GetChangesFromPackageURL(http.DefaultClient, packageURL); err != nil {
 			fmt.Printf("Error downloading changes: %v", err.Error())
 			os.Exit(1)
 		} else {
@@ -34,7 +40,10 @@ func main() {
 	}
 
 	if onlyPrintVersion == false {
-		ubuntukernelpageutils.DownloadKernelDebs(packageURL)
+		_, err = ubuntukernelpageutils.DownloadKernelDebs(http.DefaultClient, packageURL)
+		if err != nil {
+			fmt.Printf("Error downloading .deb files: %q", err)
+		}
 	}
 
 }

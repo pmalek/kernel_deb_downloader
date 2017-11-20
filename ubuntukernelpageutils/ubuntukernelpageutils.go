@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"strings"
 
 	"github.com/pmalek/kernel_deb_downloader/download"
 	"github.com/pmalek/kernel_deb_downloader/http"
@@ -89,6 +90,7 @@ func parsePackagePage(respBody io.Reader, packageURL string) (links []string) {
 func getMostActualKernelVersion(versionsAndLinksMap map[string]string) (version, link string) {
 	if len(versionsAndLinksMap) == 0 {
 		return
+
 	}
 
 	var keys []string
@@ -96,6 +98,40 @@ func getMostActualKernelVersion(versionsAndLinksMap map[string]string) (version,
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
+
+	if len(keys) < 1 {
+		return
+	}
+
+	version = keys[len(keys)-1]
+	link = versionsAndLinksMap[keys[len(keys)-1]]
+
+	return
+}
+
+func getMostActualKernelVersionFromMajorVersion(majorVersion string, versionsAndLinksMap map[string]string) (version, link string) {
+	if len(versionsAndLinksMap) == 0 {
+		return
+	}
+
+	majorVersion = versionutils.UnifiedVersion(majorVersion, 2)[:4]
+
+	var keys []string
+	for k := range versionsAndLinksMap {
+		if len(k) < 4 {
+			continue
+		}
+
+		version := k[:4]
+		if strings.Compare(version, majorVersion) == 0 {
+			keys = append(keys, k)
+		}
+	}
+	sort.Strings(keys)
+
+	if len(keys) < 1 {
+		return
+	}
 
 	version = keys[len(keys)-1]
 	link = versionsAndLinksMap[keys[len(keys)-1]]
@@ -117,6 +153,24 @@ func GetMostActualKernelVersion(client http.Getter) (version, link string, err e
 
 	links := parseKernelPage(resp.Body)
 	version, link = getMostActualKernelVersion(links)
+	return version, link, nil
+}
+
+// GetMostActualKernelVersionFromMajorVersion returns a pair of strings representing
+// version - a canonical kernel version e.g. 040602
+// link - a URL where kernel .debs at version @version are stored
+// from major version release branch e.g. 4.13
+func GetMostActualKernelVersionFromMajorVersion(majorVersion string, client http.Getter) (version, link string, err error) {
+	resp, err := client.Get(KernelWebpage)
+
+	if err != nil {
+		return "", "",
+			fmt.Errorf("Could get Ubuntu kernel mainline webpage %s, received error: %v", KernelWebpage, err)
+	}
+	defer resp.Body.Close()
+
+	links := parseKernelPage(resp.Body)
+	version, link = getMostActualKernelVersionFromMajorVersion(majorVersion, links)
 	return version, link, nil
 }
 

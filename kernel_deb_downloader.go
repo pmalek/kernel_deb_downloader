@@ -12,17 +12,26 @@ import (
 var (
 	onlyPrintVersion bool
 	showChanges      bool
+	majorVersion     string
 )
 
 func init() {
 	flag.BoolVar(&onlyPrintVersion, "n", false, "Print newest version - do not download the .debs")
 	flag.BoolVar(&showChanges, "c", false, "Show changes included in particular kernel package")
+	flag.StringVar(&majorVersion, "m", "", "Major version from which to download the newest kernel package")
 }
 
 func main() {
 	flag.Parse()
 
-	version, packageURL, err := ubuntukernelpageutils.GetMostActualKernelVersion(http.DefaultClient)
+	var version, packageURL string
+	var err error
+	if len(majorVersion) > 0 {
+		version, packageURL, err = ubuntukernelpageutils.GetMostActualKernelVersionFromMajorVersion(majorVersion, http.DefaultClient)
+	} else {
+		version, packageURL, err = ubuntukernelpageutils.GetMostActualKernelVersion(http.DefaultClient)
+	}
+
 	if err != nil {
 		fmt.Printf("Error connecting to Ubuntu's kernel ppa webpage, error: %q", err)
 		os.Exit(1)

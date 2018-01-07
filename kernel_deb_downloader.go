@@ -12,13 +12,13 @@ import (
 var (
 	onlyPrintVersion bool
 	showChanges      bool
-	majorVersion     string
+	desiredVersion   string
 )
 
 func init() {
 	flag.BoolVar(&onlyPrintVersion, "n", false, "Print newest version - do not download the .debs")
 	flag.BoolVar(&showChanges, "c", false, "Show changes included in particular kernel package")
-	flag.StringVar(&majorVersion, "m", "", "Major version from which to download the newest kernel package")
+	flag.StringVar(&desiredVersion, "m", "", "version from which to download the newest kernel package (either major e.g. 4.14 or concrete e.g. 4.14.10)")
 }
 
 func main() {
@@ -26,8 +26,9 @@ func main() {
 
 	var version, packageURL string
 	var err error
-	if len(majorVersion) > 0 {
-		version, packageURL, err = ubuntukernelpageutils.GetMostActualKernelVersionFromMajorVersion(majorVersion, http.DefaultClient)
+	if len(desiredVersion) > 0 {
+		version, packageURL, err = ubuntukernelpageutils.GetMostActualKernelVersionFromDesiredVersion(
+			desiredVersion, http.DefaultClient)
 	} else {
 		version, packageURL, err = ubuntukernelpageutils.GetMostActualKernelVersion(http.DefaultClient)
 	}

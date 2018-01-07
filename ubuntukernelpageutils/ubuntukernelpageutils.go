@@ -109,21 +109,35 @@ func getMostActualKernelVersion(versionsAndLinksMap map[string]string) (version,
 	return
 }
 
-func getMostActualKernelVersionFromMajorVersion(majorVersion string, versionsAndLinksMap map[string]string) (version, link string) {
+func getMostActualKernelVersionFromMajorVersion(desiredVersion string, versionsAndLinksMap map[string]string) (version, link string) {
 	if len(versionsAndLinksMap) == 0 {
 		return
 	}
 
-	majorVersion = versionutils.UnifiedVersion(majorVersion, 2)[:4]
+	versionLen := 0
+
+	switch strings.Count(desiredVersion, ".") {
+	case 2:
+		desiredVersion = versionutils.UnifiedVersion(desiredVersion, 2)[:6]
+		versionLen = 6
+	case 1:
+		desiredVersion = versionutils.UnifiedVersion(desiredVersion, 2)[:4]
+		versionLen = 4
+	case 0:
+		desiredVersion = versionutils.UnifiedVersion(desiredVersion, 2)[:2]
+		versionLen = 2
+	default:
+		return
+	}
 
 	var keys []string
 	for k := range versionsAndLinksMap {
-		if len(k) < 4 {
+		if len(k) < versionLen {
 			continue
 		}
 
-		version := k[:4]
-		if strings.Compare(version, majorVersion) == 0 {
+		version := k[:versionLen]
+		if strings.Compare(version, desiredVersion) == 0 {
 			keys = append(keys, k)
 		}
 	}
@@ -160,7 +174,7 @@ func GetMostActualKernelVersion(client http.Getter) (version, link string, err e
 // version - a canonical kernel version e.g. 040602
 // link - a URL where kernel .debs at version @version are stored
 // from major version release branch e.g. 4.13
-func GetMostActualKernelVersionFromMajorVersion(majorVersion string, client http.Getter) (version, link string, err error) {
+func GetMostActualKernelVersionFromDesiredVersion(desiredVersion string, client http.Getter) (version, link string, err error) {
 	resp, err := client.Get(KernelWebpage)
 
 	if err != nil {
@@ -170,7 +184,7 @@ func GetMostActualKernelVersionFromMajorVersion(majorVersion string, client http
 	defer resp.Body.Close()
 
 	links := parseKernelPage(resp.Body)
-	version, link = getMostActualKernelVersionFromMajorVersion(majorVersion, links)
+	version, link = getMostActualKernelVersionFromMajorVersion(desiredVersion, links)
 	return version, link, nil
 }
 

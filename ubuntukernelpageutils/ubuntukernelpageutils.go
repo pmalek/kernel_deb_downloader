@@ -52,7 +52,7 @@ func parseKernelPage(respBody io.Reader) (links map[string]string) {
 			}
 
 			unifiedVersion := versionutils.UnifiedVersion(a.Val, padding)
-			if i, _ := strconv.Atoi(unifiedVersion[:padding]); i == 4 {
+			if i, _ := strconv.Atoi(unifiedVersion[:padding]); i >= 4 {
 				links[unifiedVersion] = KernelWebpage + a.Val
 			}
 		}

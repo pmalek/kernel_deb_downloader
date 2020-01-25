@@ -1,0 +1,11 @@
+github.com/mattn/go-runewidth v0.0.8 h1:3tS41NlGYSmhhe/8fhGRzc+z3AYCw1Fe1WAyLuujKs0=
+github.com/mattn/go-runewidth v0.0.8/go.mod h1:H031xJmbD/WCDINGzjvQ9THkh0rPKHF+m2gUSrubnMI=
+github.com/pmalek/pb v1.0.13 h1:KsZ3hj/xm/gJs50iXZhNRdGJ9WunLfJ7IgDIfAOwSMI=
+github.com/pmalek/pb v1.0.13/go.mod h1:AFEdbZszxkFGx0CZjow5H/onkSxxwpNULec9BZk2xcM=
+github.com/pmalek/stringutils v0.0.0-20160613085703-c5d70074c6b9 h1:7afoKZy5qWK3OJakATz+2bpd1Q02FhreyuhRpahPeYY=
+github.com/pmalek/stringutils v0.0.0-20160613085703-c5d70074c6b9/go.mod h1:Q4uRTzX4JzBe/YM6nhwT2jrDgdihck7fNu0aKF+a55g=
+golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
+golang.org/x/net v0.0.0-20200114155413-6afb5195e5aa h1:F+8P+gmewFQYRk6JoLQLwjBCTu3mcIURZfNkVweuRKA=
+golang.org/x/net v0.0.0-20200114155413-6afb5195e5aa/go.mod h1:z5CRVTTTmAJ677TzLLGU+0bjPO0LkuOLi4/5GtJWs/s=
+golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
+golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=

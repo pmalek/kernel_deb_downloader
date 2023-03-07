@@ -38,7 +38,7 @@ type removeDuplicatesTestData struct {
 }
 
 func Test_RemoveDuplicates(t *testing.T) {
-	var removeDuplicatesTests = []removeDuplicatesTestData{
+	removeDuplicatesTests := []removeDuplicatesTestData{
 		{[]string{"aa", "bb", "cc", "aa", "aa", "aa", "aa", "aa"}, []string{"aa", "bb", "cc"}},
 		{[]string{"aa"}, []string{"aa"}},
 		{[]string{"aa", "bb", "cc", "aa"}, []string{"aa", "bb", "cc"}},
@@ -60,36 +60,49 @@ type parsePagesTestData struct {
 }
 
 func Test_parseKernelPage(t *testing.T) {
-	var tests = []parsePagesTestData{
-		{`<tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.12.1/">v4.12.1/</a></td><td align="right">2017-07-12 17:20  </td><td align="right">  - </td><td>&nbsp;</td></tr>`,
+	tests := []parsePagesTestData{
+		{
+			`<tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.12.1/">v4.12.1/</a></td><td align="right">2017-07-12 17:20  </td><td align="right">  - </td><td>&nbsp;</td></tr>`,
 			map[string]string{
 				"041201": "http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.12.1/",
 			},
 		},
-		{`<tr><td valign="top"></td><td><a href="v4.12.1/">v4.12.1/</a></td><td align="right">2017-07-12 17:20  </td><td align="right">  - </td><td>&nbsp;</td></tr>`,
+		{
+			`<tr><td valign="top"></td><td><a href="v4.12.1/">v4.12.1/</a></td><td align="right">2017-07-12 17:20  </td><td align="right">  - </td><td>&nbsp;</td></tr>`,
 			map[string]string{
 				"041201": "http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.12.1/",
 			},
 		},
-		{`<tr><td><a href="v4.12.1/">v4.12.1/</a></td><td align="right">2017-07-12 17:20  </td><td align="right">  - </td><td>&nbsp;</td></tr>`,
+		{
+			`<tr><td><a href="v4.12.1/">v4.12.1/</a></td><td align="right">2017-07-12 17:20  </td><td align="right">  - </td><td>&nbsp;</td></tr>`,
 			map[string]string{
 				"041201": "http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.12.1/",
 			},
 		},
-		{`<tr><td><a href="v4.12.1/">v4.12.1/</a></td><td align="right">  - </td><td>&nbsp;</td></tr>`,
+		{
+			`<tr><td><a href="v4.12.1/">v4.12.1/</a></td><td align="right">  - </td><td>&nbsp;</td></tr>`,
 			map[string]string{
 				"041201": "http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.12.1/",
 			},
 		},
-		{`<tr><td><a href="v4.12.1/">v4.12.1/</a></td></tr>`,
+		{
+			`<tr><td><a href="v4.12.1/">v4.12.1/</a></td></tr>`,
 			map[string]string{
 				"041201": "http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.12.1/",
 			},
 		},
-		{`<tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.12.4/">v4.12.4/</a></td><td align="right">2017-07-28 01:00  </td><td align="right">  - </td><td>&nbsp;</td></tr><tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.11.10/">v4.11.10/</a></td><td align="right">2017-07-12 16:20  </td><td align="right">  - </td><td>&nbsp;</td></tr>`,
+		{
+			`<tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.12.4/">v4.12.4/</a></td><td align="right">2017-07-28 01:00  </td><td align="right">  - </td><td>&nbsp;</td></tr><tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.11.10/">v4.11.10/</a></td><td align="right">2017-07-12 16:20  </td><td align="right">  - </td><td>&nbsp;</td></tr>`,
 			map[string]string{
 				"041110": "http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.11.10/",
 				"041204": "http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.12.4/",
+			},
+		},
+		{
+			`<tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v5.2.13/">v5.2.13/</a></td><td align="right">2020-07-28 01:00  </td><td align="right">  - </td><td>&nbsp;</td></tr><tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v5.3.10/">v5.3.10/</a></td><td align="right">2021-07-12 16:20  </td><td align="right">  - </td><td>&nbsp;</td></tr>`,
+			map[string]string{
+				"050213": "http://kernel.ubuntu.com/~kernel-ppa/mainline/v5.2.13/",
+				"050310": "http://kernel.ubuntu.com/~kernel-ppa/mainline/v5.3.10/",
 			},
 		},
 	}
@@ -103,19 +116,22 @@ func Test_parseKernelPage(t *testing.T) {
 }
 
 func Test_parseKernelPage_RCsAreNotReturned(t *testing.T) {
-	var tests = []parsePagesTestData{
-		{`<tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.12.4/">v4.12.4/</a></td><td align="right">2017-07-28 01:00  </td><td align="right">  - </td><td>&nbsp;</td></tr><tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.11.10/">v4.11.10/</a></td><td align="right">2017-07-12 16:20  </td><td align="right">  - </td><td>&nbsp;</td></tr><tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.12-rc3/">v4.12-rc3/</a></td><td align="right">2017-05-29 02:50  </td><td align="right">  - </td><td>&nbsp;</td></tr>`,
+	tests := []parsePagesTestData{
+		{
+			`<tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.12.4/">v4.12.4/</a></td><td align="right">2017-07-28 01:00  </td><td align="right">  - </td><td>&nbsp;</td></tr><tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.11.10/">v4.11.10/</a></td><td align="right">2017-07-12 16:20  </td><td align="right">  - </td><td>&nbsp;</td></tr><tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.12-rc3/">v4.12-rc3/</a></td><td align="right">2017-05-29 02:50  </td><td align="right">  - </td><td>&nbsp;</td></tr>`,
 			map[string]string{
 				"041110": "http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.11.10/",
 				"041204": "http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.12.4/",
 			},
 		},
-		{`<tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.11.10/">v4.11.10/</a></td><td align="right">2017-07-12 16:20  </td><td align="right">  - </td><td>&nbsp;</td></tr><tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.12-rc3/">v4.12-rc3/</a></td><td align="right">2017-05-29 02:50  </td><td align="right">  - </td><td>&nbsp;</td></tr>`,
+		{
+			`<tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.11.10/">v4.11.10/</a></td><td align="right">2017-07-12 16:20  </td><td align="right">  - </td><td>&nbsp;</td></tr><tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.12-rc3/">v4.12-rc3/</a></td><td align="right">2017-05-29 02:50  </td><td align="right">  - </td><td>&nbsp;</td></tr>`,
 			map[string]string{
 				"041110": "http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.11.10/",
 			},
 		},
-		{`<tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.12-rc3/">v4.12-rc3/</a></td><td align="right">2017-05-29 02:50  </td><td align="right">  - </td><td>&nbsp;</td></tr>`,
+		{
+			`<tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="v4.12-rc3/">v4.12-rc3/</a></td><td align="right">2017-05-29 02:50  </td><td align="right">  - </td><td>&nbsp;</td></tr>`,
 			map[string]string{},
 		},
 	}
@@ -135,8 +151,9 @@ type parsePackangePageTestData struct {
 }
 
 func Test_parsePackagePage(t *testing.T) {
-	var tests = []parsePackangePageTestData{
-		{str: `<tr><td valign="top"><img src="/icons/back.gif" alt="[PARENTDIR]"></td><td><a href="/~kernel-ppa/mainline/">Parent Directory</a></td><td>&nbsp;</td><td align="right">  - </td><td>&nbsp;</td></tr>
+	tests := []parsePackangePageTestData{
+		{
+			str: `<tr><td valign="top"><img src="/icons/back.gif" alt="[PARENTDIR]"></td><td><a href="/~kernel-ppa/mainline/">Parent Directory</a></td><td>&nbsp;</td><td align="right">  - </td><td>&nbsp;</td></tr>
 		<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="0001-base-packaging.patch">0001-base-packaging.patch</a></td><td align="right">2017-07-27 23:32  </td><td align="right"> 14M</td><td>&nbsp;</td></tr>
 		<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="0002-debian-changelog.patch">0002-debian-changelog.patch</a></td><td align="right">2017-07-27 23:32  </td><td align="right"> 40K</td><td>&nbsp;</td></tr>
 		<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="0003-configs-based-on-Ubuntu-4.12.0-8.9.patch">0003-configs-based-on-Ubuntu-4.12.0-8.9.patch</a></td><td align="right">2017-07-27 23:32  </td><td align="right"> 11K</td><td>&nbsp;</td></tr>
@@ -180,9 +197,11 @@ func Test_parsePackagePage(t *testing.T) {
 			expected: []string{
 				"http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.12.4/linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_amd64.deb",
 				"http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.12.4/linux-headers-4.12.4-041204_4.12.4-041204.201707271932_all.deb",
-				"http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.12.4/linux-image-4.12.4-041204-generic_4.12.4-041204.201707271932_amd64.deb"},
+				"http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.12.4/linux-image-4.12.4-041204-generic_4.12.4-041204.201707271932_amd64.deb",
+			},
 		},
-		{str: `<tr><td valign="top"><img src="/icons/unknown.gif" alt="[    ]"></td><td><a href="linux-headers-4.12.4-041204-generic-lpae_4.12.4-041204.201707271932_armhf.deb">linux-headers-4.12.4-041204-generic-lpae_4.12.4-041204.201707271932_armhf.deb</a></td><td align="right">2017-07-28 00:28  </td><td align="right">707K</td><td>&nbsp;</td></tr>
+		{
+			str: `<tr><td valign="top"><img src="/icons/unknown.gif" alt="[    ]"></td><td><a href="linux-headers-4.12.4-041204-generic-lpae_4.12.4-041204.201707271932_armhf.deb">linux-headers-4.12.4-041204-generic-lpae_4.12.4-041204.201707271932_armhf.deb</a></td><td align="right">2017-07-28 00:28  </td><td align="right">707K</td><td>&nbsp;</td></tr>
 		<tr><td valign="top"><img src="/icons/unknown.gif" alt="[    ]"></td><td><a href="linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_amd64.deb">linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_amd64.deb</a></td><td align="right">2017-07-27 23:49  </td><td align="right">654K</td><td>&nbsp;</td></tr>
 		<tr><td valign="top"><img src="/icons/unknown.gif" alt="[    ]"></td><td><a href="linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_arm64.deb">linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_arm64.deb</a></td><td align="right">2017-07-28 00:38  </td><td align="right">684K</td><td>&nbsp;</td></tr>
 		<tr><td valign="top"><img src="/icons/unknown.gif" alt="[    ]"></td><td><a href="linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_armhf.deb">linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_armhf.deb</a></td><td align="right">2017-07-28 00:26  </td><td align="right">712K</td><td>&nbsp;</td></tr>
@@ -205,9 +224,11 @@ func Test_parsePackagePage(t *testing.T) {
 			expected: []string{
 				"http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.12.4/linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_amd64.deb",
 				"http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.12.4/linux-headers-4.12.4-041204_4.12.4-041204.201707271932_all.deb",
-				"http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.12.4/linux-image-4.12.4-041204-generic_4.12.4-041204.201707271932_amd64.deb"},
+				"http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.12.4/linux-image-4.12.4-041204-generic_4.12.4-041204.201707271932_amd64.deb",
+			},
 		},
-		{str: `<tr><td valign="top"><img src="/icons/unknown.gif" alt="[    ]"></td><td><a href="linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_amd64.deb">linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_amd64.deb</a></td><td align="right">2017-07-27 23:49  </td><td align="right">654K</td><td>&nbsp;</td></tr>
+		{
+			str: `<tr><td valign="top"><img src="/icons/unknown.gif" alt="[    ]"></td><td><a href="linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_amd64.deb">linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_amd64.deb</a></td><td align="right">2017-07-27 23:49  </td><td align="right">654K</td><td>&nbsp;</td></tr>
 		<tr><td valign="top"><img src="/icons/unknown.gif" alt="[    ]"></td><td><a href="linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_i386.deb">linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_i386.deb</a></td><td align="right">2017-07-28 00:08  </td><td align="right">646K</td><td>&nbsp;</td></tr>
 		<tr><td valign="top"><img src="/icons/unknown.gif" alt="[    ]"></td><td><a href="linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_ppc64el.deb">linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_ppc64el.deb</a></td><td align="right">2017-07-28 00:47  </td><td align="right">899K</td><td>&nbsp;</td></tr>
 		<tr><td valign="top"><img src="/icons/unknown.gif" alt="[    ]"></td><td><a href="linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_s390x.deb">linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_s390x.deb</a></td><td align="right">2017-07-28 00:51  </td><td align="right">350K</td><td>&nbsp;</td></tr>
@@ -224,9 +245,11 @@ func Test_parsePackagePage(t *testing.T) {
 			expected: []string{
 				"http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.12.4/linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_amd64.deb",
 				"http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.12.4/linux-headers-4.12.4-041204_4.12.4-041204.201707271932_all.deb",
-				"http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.12.4/linux-image-4.12.4-041204-generic_4.12.4-041204.201707271932_amd64.deb"},
+				"http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.12.4/linux-image-4.12.4-041204-generic_4.12.4-041204.201707271932_amd64.deb",
+			},
 		},
-		{str: `<tr><td valign="top"><img src="/icons/unknown.gif" alt="[    ]"></td><td><a href="linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_i386.deb">linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_i386.deb</a></td><td align="right">2017-07-28 00:08  </td><td align="right">646K</td><td>&nbsp;</td></tr>
+		{
+			str: `<tr><td valign="top"><img src="/icons/unknown.gif" alt="[    ]"></td><td><a href="linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_i386.deb">linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_i386.deb</a></td><td align="right">2017-07-28 00:08  </td><td align="right">646K</td><td>&nbsp;</td></tr>
 		<tr><td valign="top"><img src="/icons/unknown.gif" alt="[    ]"></td><td><a href="linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_ppc64el.deb">linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_ppc64el.deb</a></td><td align="right">2017-07-28 00:47  </td><td align="right">899K</td><td>&nbsp;</td></tr>
 		<tr><td valign="top"><img src="/icons/unknown.gif" alt="[    ]"></td><td><a href="linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_s390x.deb">linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_s390x.deb</a></td><td align="right">2017-07-28 00:51  </td><td align="right">350K</td><td>&nbsp;</td></tr>
 		<tr><td valign="top"><img src="/icons/unknown.gif" alt="[    ]"></td><td><a href="linux-headers-4.12.4-041204-lowlatency_4.12.4-041204.201707271932_amd64.deb">linux-headers-4.12.4-041204-lowlatency_4.12.4-041204.201707271932_amd64.deb</a></td><td align="right">2017-07-27 23:51  </td><td align="right">656K</td><td>&nbsp;</td></tr>
@@ -239,9 +262,11 @@ func Test_parsePackagePage(t *testing.T) {
 		<tr><td valign="top"><img src="/icons/unknown.gif" alt="[    ]"></td><td><a href="linux-image-4.12.4-041204-lowlatency_4.12.4-041204.201707271932_i386.deb">linux-image-4.12.4-041204-lowlatency_4.12.4-041204.201707271932_i386.deb</a></td><td align="right">2017-07-28 00:10  </td><td align="right"> 47M</td><td>&nbsp;</td></tr>`,
 			packageURL: "http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.12.4/",
 			expected: []string{
-				"http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.12.4/linux-image-4.12.4-041204-generic_4.12.4-041204.201707271932_amd64.deb"},
+				"http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.12.4/linux-image-4.12.4-041204-generic_4.12.4-041204.201707271932_amd64.deb",
+			},
 		},
-		{str: `<tr><td valign="top"><img src="/icons/unknown.gif" alt="[    ]"></td><td><a href="linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_i386.deb">linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_i386.deb</a></td><td align="right">2017-07-28 00:08  </td><td align="right">646K</td><td>&nbsp;</td></tr>
+		{
+			str: `<tr><td valign="top"><img src="/icons/unknown.gif" alt="[    ]"></td><td><a href="linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_i386.deb">linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_i386.deb</a></td><td align="right">2017-07-28 00:08  </td><td align="right">646K</td><td>&nbsp;</td></tr>
 		<tr><td valign="top"><img src="/icons/unknown.gif" alt="[    ]"></td><td><a href="linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_ppc64el.deb">linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_ppc64el.deb</a></td><td align="right">2017-07-28 00:47  </td><td align="right">899K</td><td>&nbsp;</td></tr>
 		<tr><td valign="top"><img src="/icons/unknown.gif" alt="[    ]"></td><td><a href="linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_s390x.deb">linux-headers-4.12.4-041204-generic_4.12.4-041204.201707271932_s390x.deb</a></td><td align="right">2017-07-28 00:51  </td><td align="right">350K</td><td>&nbsp;</td></tr>
 		<tr><td valign="top"><img src="/icons/unknown.gif" alt="[    ]"></td><td><a href="linux-headers-4.12.4-041204-lowlatency_4.12.4-041204.201707271932_amd64.deb">linux-headers-4.12.4-041204-lowlatency_4.12.4-041204.201707271932_amd64.deb</a></td><td align="right">2017-07-27 23:51  </td><td align="right">656K</td><td>&nbsp;</td></tr>
@@ -270,7 +295,7 @@ type getMostActualKernelVersionTestData struct {
 }
 
 func Test_getMostActualKernelVersion(t *testing.T) {
-	var tests = []getMostActualKernelVersionTestData{
+	tests := []getMostActualKernelVersionTestData{
 		{
 			links: map[string]string{
 				"040116": "http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.1.16-wily/",
@@ -320,7 +345,7 @@ type GetMostActualKernelVersionTestData struct {
 }
 
 func Test_GetMostActualKernelVersion_MockClient(t *testing.T) {
-	var tests = []GetMostActualKernelVersionTestData{
+	tests := []GetMostActualKernelVersionTestData{
 		{
 			kernelPageContents: `<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
 <html>
@@ -430,7 +455,6 @@ func Test_GetChangesFromPackageURL_OnSuccess(t *testing.T) {
 	client.SetStatusCode(200)
 
 	actualChangesContents, err := GetChangesFromPackageURL(client, "")
-
 	if err != nil {
 		t.Errorf("GetChangesFromPackageURL() wasn't supposed to return an error but it did return a %q", err)
 	}

@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"regexp"
+	"sort"
+	"strconv"
 
 	"github.com/pmalek/kernel_deb_downloader/download"
 	"github.com/pmalek/kernel_deb_downloader/http"
 	"github.com/pmalek/kernel_deb_downloader/versionutils"
-
-	"regexp"
-	"sort"
-	"strconv"
 
 	"golang.org/x/net/html"
 )
@@ -51,7 +50,7 @@ func parseKernelPage(respBody io.Reader) (links map[string]string) {
 			}
 
 			unifiedVersion := versionutils.UnifiedVersion(a.Val, padding)
-			if i, _ := strconv.Atoi(unifiedVersion[:padding]); i == 4 {
+			if i, _ := strconv.Atoi(unifiedVersion[:padding]); i >= 3 && i < 10 {
 				links[unifiedVersion] = KernelWebpage + a.Val
 			}
 		}
@@ -61,8 +60,8 @@ func parseKernelPage(respBody io.Reader) (links map[string]string) {
 }
 
 func parsePackagePage(respBody io.Reader, packageURL string) (links []string) {
-	var regDebAll = regexp.MustCompile(`.*_all\.deb`)
-	var regDebGeneric = regexp.MustCompile(`.*generic.*_amd64\.deb`)
+	regDebAll := regexp.MustCompile(`.*_all\.deb`)
+	regDebGeneric := regexp.MustCompile(`.*generic.*_amd64\.deb`)
 
 	z := html.NewTokenizer(respBody)
 
@@ -108,7 +107,6 @@ func getMostActualKernelVersion(versionsAndLinksMap map[string]string) (version,
 // link - a URL where kernel .debs at version @version are stored
 func GetMostActualKernelVersion(client http.Getter) (version, link string, err error) {
 	resp, err := client.Get(KernelWebpage)
-
 	if err != nil {
 		return "", "",
 			fmt.Errorf("Could get Ubuntu kernel mainline webpage %s, received error: %v", KernelWebpage, err)
